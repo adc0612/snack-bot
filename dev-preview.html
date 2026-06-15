@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>🍿 Snack Bot Preview</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #1a1d21; color: #d1d2d3; min-height: 100vh; }
+
+/* TOP BAR */
+.topbar { background: #19171d; border-bottom: 1px solid #35373b; padding: 10px 20px; display: flex; align-items: center; gap: 16px; }
+.topbar-title { font-size: 15px; font-weight: 700; color: #fff; }
+.badge { font-size: 11px; background: #2bac76; color: #fff; padding: 2px 8px; border-radius: 99px; }
+.user-select { background: #2c2d30; border: 1px solid #565856; color: #d1d2d3; padding: 5px 10px; border-radius: 6px; font-size: 13px; }
+
+/* LAYOUT */
+.layout { display: flex; height: calc(100vh - 49px); }
+.sidebar { width: 220px; background: #19171d; border-right: 1px solid #35373b; padding: 16px 12px; flex-shrink: 0; }
+.sidebar-label { font-size: 11px; color: #8c8c8c; text-transform: uppercase; letter-spacing: 0.06em; margin: 14px 0 6px; }
+.sidebar-label:first-child { margin-top: 0; }
+.cmd-btn { width: 100%; text-align: left; background: none; border: none; color: #d1d2d3; padding: 7px 10px; border-radius: 6px; font-size: 13px; cursor: pointer; display: flex; align-items: center; gap: 8px; }
+.cmd-btn:hover { background: #2c2d30; color: #fff; }
+.cmd-code { font-family: monospace; font-size: 12px; color: #4a9eda; }
+
+/* CHANNEL */
+.channel { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+.ch-header { padding: 12px 20px; border-bottom: 1px solid #35373b; font-size: 14px; font-weight: 600; color: #fff; }
+.ch-body { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 2px; }
+
+/* MESSAGES */
+.msg { display: flex; gap: 10px; padding: 6px 0; }
+.avatar { width: 36px; height: 36px; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; color: #fff; flex-shrink: 0; }
+.msg-body { flex: 1; }
+.msg-meta { display: flex; align-items: baseline; gap: 8px; margin-bottom: 2px; }
+.msg-name { font-size: 14px; font-weight: 700; color: #fff; }
+.msg-time { font-size: 11px; color: #8c8c8c; }
+.msg-text { font-size: 14px; line-height: 1.6; }
+.msg-text strong { color: #fff; }
+.msg-text code { background: #35373b; padding: 1px 5px; border-radius: 3px; font-family: monospace; font-size: 12px; }
+.msg-text a { color: #4a9eda; text-decoration: none; }
+.msg-block { margin-top: 6px; background: #222529; border-radius: 4px; padding: 10px 14px; border-left: 3px solid #565856; font-size: 14px; line-height: 1.7; }
+.msg-block.snack { border-left-color: #2bac76; }
+.msg-block.drink { border-left-color: #4a9eda; }
+.msg-block.candy { border-left-color: #e8647a; }
+.msg-divider { border: none; border-top: 1px solid #35373b; margin: 6px 0; }
+.msg-context { font-size: 12px; color: #8c8c8c; margin-top: 4px; }
+.sys-msg { text-align: center; font-size: 12px; color: #8c8c8c; padding: 4px 0; }
+
+/* ACTION BUTTONS in messages */
+.msg-actions { display: flex; gap: 8px; margin-top: 8px; }
+.abtn { padding: 5px 14px; border-radius: 4px; font-size: 13px; font-weight: 500; cursor: pointer; border: 1px solid; }
+.abtn-primary { background: #007a5a; border-color: #007a5a; color: #fff; }
+.abtn-primary:hover { background: #148567; }
+.abtn-default { background: transparent; border-color: #565856; color: #d1d2d3; }
+.abtn-default:hover { background: #35373b; }
+.abtn-done { background: transparent; border-color: #35373b; color: #8c8c8c; cursor: default; }
+
+/* MODAL */
+.overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.75); display: flex; align-items: center; justify-content: center; z-index: 100; }
+.overlay.hidden { display: none; }
+.mbox { background: #222529; border-radius: 8px; width: 490px; max-height: 82vh; display: flex; flex-direction: column; }
+.mhead { padding: 16px 20px 12px; border-bottom: 1px solid #35373b; display: flex; justify-content: space-between; align-items: center; }
+.mtitle { font-size: 17px; font-weight: 700; color: #fff; }
+.mx { background: none; border: none; color: #8c8c8c; font-size: 20px; cursor: pointer; }
+.mx:hover { color: #fff; }
+.mbody { padding: 16px 20px; overflow-y: auto; flex: 1; }
+.mfoot { padding: 12px 20px; border-top: 1px solid #35373b; display: flex; justify-content: flex-end; gap: 8px; }
+
+/* MODAL INPUTS */
+.fw { margin-bottom: 14px; }
+.flabel { font-size: 13px; font-weight: 600; color: #d1d2d3; margin-bottom: 6px; }
+.freq { color: #e8647a; }
+.fhint { font-size: 12px; color: #8c8c8c; margin-top: 4px; }
+select.fi, input.fi { width: 100%; padding: 8px 10px; background: #1a1d21; border: 1px solid #565856; border-radius: 4px; color: #d1d2d3; font-size: 14px; }
+select.fi:focus, input.fi:focus { outline: none; border-color: #4a9eda; }
+input.fi-num { width: 100px; padding: 8px 10px; background: #1a1d21; border: 1px solid #565856; border-radius: 4px; color: #d1d2d3; font-size: 14px; }
+.mctx { font-size: 12px; color: #8c8c8c; margin-bottom: 12px; }
+.mdivider { border: none; border-top: 1px solid #35373b; margin: 12px 0; }
+.mbtn-primary { padding: 8px 18px; border-radius: 4px; font-size: 14px; font-weight: 600; cursor: pointer; background: #007a5a; color: #fff; border: none; }
+.mbtn-primary:hover { background: #148567; }
+.mbtn-ghost { padding: 8px 18px; border-radius: 4px; font-size: 14px; font-weight: 600; cursor: pointer; background: transparent; border: 1px solid #565856; color: #d1d2d3; }
+.mbtn-ghost:hover { background: #35373b; }
+
+/* ORDER ITEMS */
+.orow { display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: #2c2d30; border-radius: 6px; margin-bottom: 6px; }
+.oinfo { flex: 1; }
+.ocat { font-size: 11px; background: #35373b; color: #8c8c8c; border-radius: 99px; padding: 2px 8px; display: inline-block; margin-bottom: 3px; }
+.oname { font-size: 14px; font-weight: 600; color: #fff; }
+.obrand { font-size: 12px; color: #8c8c8c; margin-left: 4px; font-weight: 400; }
+.oqty { font-size: 13px; color: #8c8c8c; }
+.odel { background: none; border: none; color: #8c8c8c; cursor: pointer; font-size: 16px; padding: 4px 6px; border-radius: 4px; }
+.odel:hover { color: #e8647a; background: rgba(232,100,122,0.1); }
+.oadd { width: 100%; padding: 10px; background: none; border: 1px dashed #565856; border-radius: 6px; color: #8c8c8c; font-size: 14px; cursor: pointer; margin-top: 6px; }
+.oadd:hover { color: #d1d2d3; border-color: #8c8c8c; background: #2c2d30; }
+.oempty { text-align: center; padding: 24px; font-size: 14px; color: #8c8c8c; line-height: 1.8; }
+.cat-chips { display: flex; gap: 8px; margin-bottom: 4px; }
+.chip { flex: 1; padding: 8px 4px; background: #2c2d30; border: 1px solid #565856; border-radius: 6px; color: #8c8c8c; font-size: 13px; text-align: center; cursor: pointer; }
+.chip.on { border-color: #4a9eda; color: #4a9eda; background: #1a2d3d; }
+.chip:hover:not(.on) { border-color: #8c8c8c; color: #d1d2d3; }
+.direct-link { font-size: 13px; color: #4a9eda; cursor: pointer; margin-top: 8px; display: inline-block; }
+.direct-link:hover { text-decoration: underline; }
+.toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); padding: 10px 20px; border-radius: 6px; font-size: 14px; font-weight: 600; z-index: 200; opacity: 0; transition: opacity 0.25s; pointer-events: none; }
+.toast.show { opacity: 1; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <span class="topbar-title">🍿 Snack Bot</span>
+  <span class="badge">PREVIEW</span>
+  <select class="user-select" onchange="setUser(this.value)">
+    <option value="U001|dohu|#4a154b">👤 dohu</option>
+    <option value="U002|john|#007a5a">👤 john</option>
+    <option value="U003|sarah|#c0392b">👤 sarah</option>
+    <option value="U_ADMIN|admin|#2c3e50">👤 admin (관리자)</option>
+  </select>
+  <span style="font-size:12px;color:#8c8c8c">현재: <strong id="user-label" style="color:#fff">dohu</strong></span>
+</div>
+
+<div class="layout">
+  <div class="sidebar">
+    <div class="sidebar-label">명령어</div>
+    <button class="cmd-btn" onclick="cmdOrder()">📦 <span class="cmd-code">/snack order</span></button>
+    <button class="cmd-btn" onclick="cmdList()">📋 <span class="cmd-code">/snack list</span></button>
+    <button class="cmd-btn" onclick="cmdClear()">🗑️ <span class="cmd-code">/snack clear</span></button>
+    <div class="sidebar-label">설명</div>
+    <div style="font-size:12px;color:#8c8c8c;padding:4px 10px;line-height:1.8">
+      유저 전환 후<br>다시 주문하면<br>목록에서 합산됨
+    </div>
+  </div>
+
+  <div class="channel">
+    <div class="ch-header"># snacks <span style="font-size:12px;color:#8c8c8c;font-weight:400">· UI 프리뷰 모드</span></div>
+    <div class="ch-body" id="ch"></div>
+  </div>
+</div>
+
+<!-- MODAL -->
+<div class="overlay hidden" id="overlay">
+  <div class="mbox" onclick="event.stopPropagation()">
+    <div class="mhead">
+      <span class="mtitle" id="mtitle"></span>
+      <button class="mx" onclick="closeModal()">✕</button>
+    </div>
+    <div class="mbody" id="mbody"></div>
+    <div class="mfoot" id="mfoot"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── STATE ──────────────────────────────────────────────────────
+const CATALOG = {
+  '과자': {
+    '오리온':  ['초코파이','포카칩','오감자','초코송이','꼬북칩'],
+    '농심':    ['새우깡','꿀꽈배기','자갈치','바나나킥'],
+    '해태':    ['홈런볼','에이스','맛동산'],
+    '롯데':    ['빼빼로','마가렛트','꼬깔콘','칙촉'],
+  },
+  '음료': {
+    '코카콜라': ['코카콜라','스프라이트','환타'],
+    '롯데칠성': ['펩시','칸타타','레쓰비','밀키스'],
+    '동아오츠카':['포카리스웨트'],
+    '빙그레':  ['바나나맛우유'],
+  },
+  '사탕/젤리': {
+    '하리보':  ['골드베어','콜라젤리'],
+    '롯데':    ['말랑카우','목캔디'],
+    '해태':    ['아이셔'],
+  },
+};
+const CAT_EMOJI = {'과자':'🍪','음료':'🧃','사탕/젤리':'🍬'};
+
+// orders: { userId → { userName, color, items: [{id,cat,brand,item,qty,link}] } }
+let orders = {};
+let currentUser = {id:'U001', name:'dohu', color:'#4a154b'};
+// modal state
+let modal = { screen: null, cat: null, isCustom: false };
+
+function setUser(val) {
+  const [id,name,color] = val.split('|');
+  currentUser = {id,name,color};
+  document.getElementById('user-label').textContent = name;
+}
+
+// ── COMMANDS ───────────────────────────────────────────────────
+function cmdOrder() {
+  sysMsg(`${currentUser.name} 님이 /snack order 실행`);
+  modal = { screen: 'my-orders', cat: null, isCustom: false };
+  showModal();
+}
+
+function cmdList() {
+  sysMsg(`${currentUser.name} 님이 /snack list 실행`);
+  const allItems = Object.values(orders).flatMap(u =>
+    u.items.map(i => ({...i, userName: u.userName}))
+  );
+  if (!allItems.length) {
+    addMsg('snackbot','🤖 Snack Bot','#4a154b',
+      '📭 아직 주문이 없습니다. `/snack order` 로 주문해주세요!', []);
+    return;
+  }
+  // aggregate by cat+brand+item
+  const agg = {};
+  for (const i of allItems) {
+    const k = `${i.cat}|${i.brand}|${i.item}`;
+    if (!agg[k]) agg[k] = {...i, total: 0, who: []};
+    agg[k].total += i.qty;
+    agg[k].who.push({name: i.userName, qty: i.qty, link: i.link});
+  }
+  const blocks = buildListBlocks(agg);
+  addMsg('snackbot','🤖 Snack Bot','#4a154b',
+    `📦 이번 주 간식 주문 현황`, blocks);
+}
+
+function cmdClear() {
+  sysMsg(`admin이 /snack clear 실행`);
+  orders = {};
+  addMsg('snackbot','🤖 Snack Bot','#4a154b','🗑️ 이번 주 주문 목록이 초기화됐습니다.',[]);
+  toast('주문 목록 초기화 완료');
+}
+
+function buildListBlocks(agg) {
+  const catOrder = ['과자','음료','사탕/젤리'];
+  const blocks = [];
+  for (const cat of catOrder) {
+    const entries = Object.values(agg).filter(e => e.cat === cat);
+    if (!entries.length) continue;
+    blocks.push({type:'cat', cat});
+    for (const e of entries) {
+      const whoStr = e.who.map(w => {
+        const lnk = w.link ? ` <a href="${w.link}" target="_blank">🔗</a>` : '';
+        return `@${w.name} ×${w.qty}${lnk}`;
+      }).join('  ·  ');
+      const brandStr = e.brand ? ` (${e.brand})` : '';
+      blocks.push({type:'entry', text:`<strong>${e.item}</strong>${brandStr} — 총 <strong>×${e.total}</strong><br><span style="color:#8c8c8c;font-size:13px">${whoStr}</span>`});
+    }
+  }
+  const total = Object.values(agg).length;
+  const qty = Object.values(agg).reduce((s,e)=>s+e.total,0);
+  const ppl = new Set(Object.values(orders).map(u=>u.userName)).size;
+  blocks.push({type:'ctx', text:`${ppl}명 · ${total}종류 · 총 ${qty}개 · 마감 금요일 오후 5시`});
+  return blocks;
+}
+
+// ── MODAL ──────────────────────────────────────────────────────
+function showModal() {
+  document.getElementById('overlay').classList.remove('hidden');
+  renderModalContent();
+}
+
+function closeModal() {
+  document.getElementById('overlay').classList.add('hidden');
+  modal = { screen: null, cat: null, isCustom: false };
+}
+
+function renderModalContent() {
+  if (modal.screen === 'my-orders') renderMyOrders();
+  else if (modal.screen === 'add-item') renderAddItem();
+}
+
+function renderMyOrders() {
+  document.getElementById('mtitle').textContent = '내 간식 주문';
+  const u = orders[currentUser.id];
+  const items = u ? u.items : [];
+  const total = items.reduce((s,i)=>s+i.qty,0);
+  const week = getWeek();
+
+  let html = `<div class="mctx">📅 <strong>${week}</strong> · ${items.length ? `${items.length}종류 ${total}개 주문 중` : '주문 없음'}</div>`;
+
+  if (!items.length) {
+    html += `<div class="oempty">아직 주문한 상품이 없습니다.<br>아래 버튼으로 첫 주문을 추가해보세요! 🛒</div>`;
+  } else {
+    for (const item of items) {
+      const brandHtml = item.brand ? `<span class="obrand">${item.brand}</span>` : '';
+      const linkHtml = item.link
+        ? `<div style="font-size:12px;margin-top:2px"><a href="${item.link}" style="color:#4a9eda" target="_blank">🔗 링크</a></div>`
+        : '';
+      html += `
+        <div class="orow">
+          <div class="oinfo">
+            <span class="ocat">${item.cat}</span>
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <span class="oname">${item.item}${brandHtml}</span>
+              <span class="oqty">×${item.qty}</span>
+            </div>
+            ${linkHtml}
+          </div>
+          <button class="odel" onclick="deleteItem('${item.id}')" title="삭제">✕</button>
+        </div>`;
+    }
+  }
+
+  html += `<button class="oadd" onclick="openAddItem()">＋ 상품 추가</button>`;
+  document.getElementById('mbody').innerHTML = html;
+  document.getElementById('mfoot').innerHTML = `<button class="mbtn-ghost" onclick="closeModal()">닫기</button>`;
+}
+
+function renderAddItem() {
+  document.getElementById('mtitle').textContent = '상품 추가';
+  const catKeys = Object.keys(CATALOG);
+
+  // Category chips
+  let html = `<div class="fw">
+    <div class="flabel">카테고리 <span class="freq">*</span></div>
+    <div class="cat-chips">
+      ${catKeys.map(c => `<div class="chip${modal.cat===c?' on':''}" onclick="selectCat('${c}')">${CAT_EMOJI[c]} ${c}</div>`).join('')}
+    </div>
+  </div>`;
+
+  if (modal.cat && !modal.isCustom) {
+    // Item select (grouped by brand as optgroup)
+    const brands = CATALOG[modal.cat];
+    html += `<div class="fw">
+      <div class="flabel">상품 <span class="freq">*</span></div>
+      <select class="fi" id="item-sel">
+        <option value="">상품 선택</option>
+        ${Object.entries(brands).map(([brand, items]) =>
+          `<optgroup label="${brand}">${items.map(i => `<option value="${brand}||${i}">${i}</option>`).join('')}</optgroup>`
+        ).join('')}
+      </select>
+      <span class="direct-link" onclick="toggleCustom()">✏️ 목록에 없는 상품 직접 입력</span>
+    </div>`;
+  }
+
+  if (modal.isCustom) {
+    html += `<div class="fw">
+      <div class="flabel">상품명 직접 입력 <span class="freq">*</span></div>
+      <input class="fi" id="custom-item" type="text" placeholder="예) 허니버터칩, 신라면컵...">
+    </div>
+    <div class="fw">
+      <div class="flabel">구매 링크 <span style="color:#8c8c8c;font-size:11px">(선택)</span></div>
+      <input class="fi" id="custom-link" type="text" placeholder="https://coupang.com/...">
+      <div class="fhint">쿠팡, 이마트몰 등</div>
+    </div>
+    <span class="direct-link" onclick="toggleCustom()">← 목록에서 선택</span>`;
+  }
+
+  if (modal.cat) {
+    html += `<div class="fw">
+      <div class="flabel">수량 <span class="freq">*</span></div>
+      <input class="fi-num" id="qty-in" type="number" value="1" min="1" max="20">
+    </div>
+    <div class="fw">
+      <div class="flabel">메모 <span style="color:#8c8c8c;font-size:11px">(선택)</span></div>
+      <input class="fi" id="note-in" type="text" placeholder="매운맛으로, 대용량 등">
+    </div>`;
+  }
+
+  document.getElementById('mbody').innerHTML = html;
+  document.getElementById('mfoot').innerHTML = `
+    <button class="mbtn-ghost" onclick="backToMyOrders()">← 뒤로</button>
+    ${modal.cat ? `<button class="mbtn-primary" onclick="submitAdd()">추가하기</button>` : ''}
+  `;
+}
+
+function selectCat(cat) {
+  modal.cat = cat;
+  modal.isCustom = false;
+  renderAddItem();
+}
+
+function toggleCustom() {
+  modal.isCustom = !modal.isCustom;
+  renderAddItem();
+}
+
+function openAddItem() {
+  modal.screen = 'add-item';
+  modal.cat = null;
+  modal.isCustom = false;
+  renderAddItem();
+}
+
+function backToMyOrders() {
+  modal.screen = 'my-orders';
+  renderMyOrders();
+}
+
+function submitAdd() {
+  let itemName, brand, link = null;
+  const qty = parseInt(document.getElementById('qty-in')?.value || '1', 10);
+
+  if (modal.isCustom) {
+    itemName = document.getElementById('custom-item')?.value.trim();
+    brand = null;
+    link = document.getElementById('custom-link')?.value.trim() || null;
+    if (!itemName) { toast('상품명을 입력해주세요.', true); return; }
+  } else {
+    const sel = document.getElementById('item-sel')?.value;
+    if (!sel) { toast('상품을 선택해주세요.', true); return; }
+    const [b, i] = sel.split('||');
+    brand = b; itemName = i;
+  }
+
+  if (!orders[currentUser.id]) {
+    orders[currentUser.id] = { userName: currentUser.name, color: currentUser.color, items: [] };
+  }
+  const userItems = orders[currentUser.id].items;
+  const key = `${brand}||${itemName}`;
+  const existing = userItems.find(i => `${i.brand}||${i.item}` === key);
+  if (existing) {
+    existing.qty += qty;
+  } else {
+    userItems.push({ id: Date.now().toString(), cat: modal.cat, brand, item: itemName, qty, link });
+  }
+
+  toast(`${itemName} ×${qty} 추가됐습니다! 🎉`);
+  modal.screen = 'my-orders';
+  renderMyOrders();
+}
+
+function deleteItem(id) {
+  if (!orders[currentUser.id]) return;
+  orders[currentUser.id].items = orders[currentUser.id].items.filter(i => i.id !== id);
+  renderMyOrders();
+}
+
+// ── MESSAGES ───────────────────────────────────────────────────
+function addMsg(type, name, color, text, blocks) {
+  const ch = document.getElementById('ch');
+  const now = new Date().toLocaleTimeString('ko-KR', {hour:'2-digit', minute:'2-digit'});
+  const avatarContent = type === 'snackbot' ? '🤖' : name.slice(0,2).toUpperCase();
+  let blocksHtml = '';
+  for (const b of blocks) {
+    if (b.type === 'cat') {
+      blocksHtml += `<div style="font-size:13px;font-weight:700;color:#fff;margin:10px 0 4px">${CAT_EMOJI[b.cat]} ${b.cat}</div>`;
+    } else if (b.type === 'entry') {
+      const cls = blocks.find(x=>x.type==='cat'&&Object.keys(CAT_EMOJI).includes(x.cat)) ? '' : '';
+      blocksHtml += `<div class="msg-block">${b.text}</div>`;
+    } else if (b.type === 'ctx') {
+      blocksHtml += `<div class="msg-context">${b.text}</div>`;
+    }
+  }
+  ch.insertAdjacentHTML('beforeend', `
+    <div class="msg">
+      <div class="avatar" style="background:${color}">${avatarContent}</div>
+      <div class="msg-body">
+        <div class="msg-meta"><span class="msg-name">${name}</span><span class="msg-time">${now}</span></div>
+        <div class="msg-text">${text}</div>
+        ${blocksHtml}
+      </div>
+    </div>
+  `);
+  ch.scrollTop = ch.scrollHeight;
+}
+
+function sysMsg(text) {
+  document.getElementById('ch').insertAdjacentHTML('beforeend',
+    `<div class="sys-msg">${text}</div>`);
+}
+
+// ── UTILS ──────────────────────────────────────────────────────
+function getWeek() {
+  const d = new Date();
+  const day = d.getDay() || 7;
+  d.setDate(d.getDate() + 4 - day);
+  const y = d.getFullYear();
+  const start = new Date(y, 0, 1);
+  const w = Math.ceil((((d - start) / 86400000) + 1) / 7);
+  return `${y}-W${String(w).padStart(2,'0')}`;
+}
+
+function toast(msg, isErr=false) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.background = isErr ? '#e8647a' : '#2bac76';
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2200);
+}
+</script>
+</body>
+</html>

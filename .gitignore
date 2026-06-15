@@ -1,5 +1,18 @@
+node_modules/
+.wrangler/
+dist/
+
+# 로컬 환경변수 (Slack 토큰 등 절대 커밋 금지)
+.dev.vars
+
+# 커버리지
+coverage/
+
+# macOS
+.DS_Store
+
+# Python
 .env
 *.db
 __pycache__/
 *.pyc
-.DS_Store

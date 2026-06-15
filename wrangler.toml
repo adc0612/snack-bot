@@ -1,0 +1,24 @@
+name = "wework-snack-bot"
+main = "src/index.js"
+compatibility_date = "2024-01-01"
+compatibility_flags = ["nodejs_compat"]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "snack-bot-db"
+database_id = "REPLACE_WITH_YOUR_D1_DATABASE_ID"
+
+[triggers]
+# 평일 10:00 KST (01:00 UTC) — 공지 체크
+# 평일 16:30 KST (07:30 UTC) — 마감 30분 전 경고 체크
+# 평일 17:00 KST (08:00 UTC) — 주문 전송 체크
+crons = [
+  "0 1 * * 1-5",
+  "30 7 * * 1-5",
+  "0 8 * * 1-5"
+]
+
+[vars]
+SLACK_CHANNEL_ID = "REPLACE_WITH_SNACK_CHANNEL_ID"
+ADMIN_USER_ID = "REPLACE_WITH_ADMIN_SLACK_USER_ID"
+# SLACK_BOT_TOKEN, SLACK_SIGNING_SECRET → wrangler secret put 으로 등록
